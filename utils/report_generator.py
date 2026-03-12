@@ -107,13 +107,10 @@ class CoverageReportGenerator:
 
         if coverage_pct >= 95:
             gauge_color = "c-pass"
-            cov_class = "v-pass"
         elif coverage_pct >= 80:
             gauge_color = "c-warn"
-            cov_class = "v-warn"
         else:
             gauge_color = "c-fail"
-            cov_class = "v-fail"
 
         html = template.format(
             report_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -122,7 +119,6 @@ class CoverageReportGenerator:
             status_icon="&#10004;" if result.get("pass", False) else "&#10006;",
             status_text="ALL REQUIREMENTS COVERED" if result.get("pass", False) else "COVERAGE INSUFFICIENT",
             coverage_pct=coverage_pct,
-            coverage_class=cov_class,
             gauge_offset=f"{gauge_offset:.1f}",
             gauge_color_class=gauge_color,
             total_req=result.get("total_requirements", 0),

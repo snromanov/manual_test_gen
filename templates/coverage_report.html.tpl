@@ -536,6 +536,7 @@
                 <div class="gs-row"><span class="gs-dot" style="background:var(--neon-green)"></span> <b>{covered_req}</b>&nbsp; covered</div>
                 <div class="gs-row"><span class="gs-dot" style="background:var(--neon-red)"></span> <b>{uncovered_count}</b>&nbsp; uncovered</div>
                 <div class="gs-row"><span class="gs-dot" style="background:var(--neon-purple)"></span> <b>{total_tc}</b>&nbsp; test cases</div>
+                <div class="gs-row"><span class="gs-dot" style="background:var(--neon-yellow)"></span> threshold: <b>{threshold}%</b></div>
             </div>
         </div>
     </div>
