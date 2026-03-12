@@ -202,13 +202,11 @@ PYTHONPATH=. python3 utils/export_allure_csv.py
 - Зависимости: `PyYAML`, `Jinja2` (см. pinned версии в `requirements.txt`)
 - Для автоматической генерации: LLM CLI агент (например, Qwen, Claude и др.)
 
-## Тесты и CI
+## Тесты
 
 ```bash
 pytest -q
 ```
-
-В репозитории добавлен GitHub Actions workflow: `.github/workflows/ci.yml`.
 
 ## Безопасность
 
