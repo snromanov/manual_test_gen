@@ -33,7 +33,7 @@ LLM_CLI "read agent_rules.md and follow the instructions"
 
 ```
 ├── agent_rules.md                      # Инструкции для LLM-агента
-├── requirements.txt                    # pyyaml, jinja2
+├── requirements.txt                    # pinned: PyYAML, Jinja2, pytest
 ├── requirements_input/
 │   ├── requirements.yaml               # Конфиг: проект, модуль, предусловия
 │   └── requirements.md                 # Требования в Markdown
@@ -41,6 +41,7 @@ LLM_CLI "read agent_rules.md and follow the instructions"
 │   └── generate_testcases.jinja2       # Промпт-шаблон с ISTQB-техниками
 ├── utils/
 │   ├── parse_requirements.py           # Парсер Markdown → структура
+│   ├── render_prompt.py                # Рендер промпта из Jinja2 + контекста
 │   ├── write_testcases_incremental.py  # Инкрементальная сборка YAML
 │   ├── validate_coverage.py            # Валидация покрытия >= 95%
 │   ├── export_allure_csv.py            # YAML → Allure TestOps CSV
@@ -162,21 +163,24 @@ LLM CLI agent "read agent_rules.md and follow the instructions"
 # 1. Парсинг требований
 PYTHONPATH=. python3 utils/parse_requirements.py
 
-# 2. Инициализация буфера
+# 2. Рендер промпта для конкретного батча требований
+PYTHONPATH=. python3 utils/render_prompt.py --req-ids REQ_001 REQ_002 --output prompt_batch_1.txt
+
+# 3. Инициализация буфера
 python3 utils/write_testcases_incremental.py --init --project "My Project"
 
-# 3. Добавление тест-кейсов порциями
+# 4. Добавление тест-кейсов порциями
 python3 utils/write_testcases_incremental.py --append part_1.yaml part_2.yaml --sync
 
-# 4. Финализация
+# 5. Финализация
 python3 utils/write_testcases_incremental.py --finalize --sync
 
-# 5. Валидация покрытия
+# 6. Валидация покрытия
 PYTHONPATH=. python3 utils/validate_coverage.py          # консоль
 PYTHONPATH=. python3 utils/validate_coverage.py --html    # + HTML-отчёт
 PYTHONPATH=. python3 utils/validate_coverage.py --json    # JSON
 
-# 6. Экспорт в Allure CSV
+# 7. Экспорт в Allure CSV
 PYTHONPATH=. python3 utils/export_allure_csv.py
 ```
 
@@ -195,8 +199,14 @@ PYTHONPATH=. python3 utils/export_allure_csv.py
 ## Требования к окружению
 
 - Python 3.10+
-- Зависимости: `pyyaml`, `jinja2`
+- Зависимости: `PyYAML`, `Jinja2` (см. pinned версии в `requirements.txt`)
 - Для автоматической генерации: LLM CLI агент (например, Qwen, Claude и др.)
+
+## Тесты
+
+```bash
+pytest -q
+```
 
 ## Безопасность
 

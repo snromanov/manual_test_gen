@@ -3,23 +3,19 @@ import os
 import sys
 from pathlib import Path
 
-try:
-    from utils.logger_config import get_logger
-except ImportError:
-    try:
-        from logger_config import get_logger
-    except ImportError:
-        import logging
-        def get_logger(name):
-            return logging.getLogger(name)
+from utils.logger_config import get_logger
 
 logger = get_logger(__name__)
 
+
 def check_env():
-    required_dirs = ["requirements_input", "prompts", "utils", "output", "reports"]
+    required_dirs = ["requirements_input", "prompts", "utils"]
+    runtime_dirs = ["output", "reports"]
     required_files = [
         "requirements_input/requirements.yaml",
         "prompts/generate_testcases.jinja2",
+        "templates/coverage_report.html.tpl",
+        "utils/render_prompt.py",
         "utils/checkpoint_manager.py",
         "utils/validate_coverage.py",
         "utils/export_allure_csv.py",
@@ -31,6 +27,9 @@ def check_env():
     for d in required_dirs:
         if not os.path.isdir(d):
             missing.append(f"Директория {d}/ не найдена")
+
+    for d in runtime_dirs:
+        Path(d).mkdir(parents=True, exist_ok=True)
 
     for f in required_files:
         if not os.path.isfile(f):
@@ -57,6 +56,7 @@ def check_env():
 
     logger.info("Окружение проверено, все необходимые компоненты на месте.")
     return True
+
 
 if __name__ == "__main__":
     if not check_env():

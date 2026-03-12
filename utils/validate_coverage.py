@@ -10,15 +10,8 @@ import yaml
 from pathlib import Path
 from collections import defaultdict
 
-try:
-    from utils.logger_config import get_logger
-except ImportError:
-    try:
-        from logger_config import get_logger
-    except ImportError:
-        import logging
-        def get_logger(name):
-            return logging.getLogger(name)
+from utils.logger_config import get_logger
+from utils.parse_requirements import load_config_and_requirements
 
 logger = get_logger(__name__)
 
@@ -36,22 +29,8 @@ def load_testcases(path: str) -> dict:
 
 def load_requirements_from_config(config_path: str) -> dict:
     """Загружает требования: из markdown-файла (если указан) или из YAML напрямую."""
-    try:
-        from utils.parse_requirements import load_config_and_requirements
-    except ImportError:
-        try:
-            from parse_requirements import load_config_and_requirements
-        except ImportError:
-            load_config_and_requirements = None
-
-    if load_config_and_requirements:
-        ctx = load_config_and_requirements(config_path)
-        return {r['id']: r for r in ctx['requirements']}
-
-    # Фолбек: прямой YAML с полем requirements
-    with open(config_path, 'r', encoding='utf-8') as f:
-        data = yaml.safe_load(f)
-    return {r['id']: r for r in data.get('requirements', [])}
+    ctx = load_config_and_requirements(config_path)
+    return {r['id']: r for r in ctx['requirements']}
 
 
 def validate_coverage(req_path: str = REQUIREMENTS_FILE, tc_path: str = TESTCASES_FILE) -> dict:
@@ -201,14 +180,7 @@ def print_report(result: dict):
 
 def generate_html_report(result: dict):
     """Генерация HTML-отчёта и вызов report_generator"""
-    try:
-        from utils.report_generator import CoverageReportGenerator
-    except ImportError:
-        try:
-            from report_generator import CoverageReportGenerator
-        except ImportError:
-            logger.warning("report_generator.py не найден, HTML-отчёт не создан")
-            return
+    from utils.report_generator import CoverageReportGenerator
 
     generator = CoverageReportGenerator()
     output_path = Path("reports/coverage_report.html")

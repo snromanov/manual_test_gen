@@ -20,15 +20,7 @@ import sys
 import yaml
 from pathlib import Path
 
-try:
-    from utils.logger_config import get_logger
-except ImportError:
-    try:
-        from logger_config import get_logger
-    except ImportError:
-        import logging
-        def get_logger(name):
-            return logging.getLogger(name)
+from utils.logger_config import get_logger
 
 logger = get_logger(__name__)
 
