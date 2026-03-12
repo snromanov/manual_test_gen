@@ -1,27 +1,23 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+import subprocess
 import yaml
 from pathlib import Path
+from typing import Any
 
-try:
-    from utils.logger_config import get_logger
-except ImportError:
-    try:
-        from logger_config import get_logger
-    except ImportError:
-        import logging
-        def get_logger(name):
-            return logging.getLogger(name)
+from utils.logger_config import get_logger
 
 logger = get_logger(__name__)
 
 
 class TestcaseWriter:
     """Инкрементальная запись тест-кейсов порциями"""
+    __test__ = False
 
     BUFFER_FILE = "testcases_buffer.yaml"
     OUTPUT_FILE = "output/testcases_output.yaml"
+    REQUIRED_FIELDS = ("id", "title", "requirement_ids", "steps", "type")
 
     def __init__(self, workspace_root=None, sync_checkpoint=False):
         if workspace_root:
@@ -47,6 +43,79 @@ class TestcaseWriter:
         logger.info(f"  Проект: {project_name}")
         return True
 
+    @staticmethod
+    def _is_non_empty_string(value: Any) -> bool:
+        return isinstance(value, str) and bool(value.strip())
+
+    def _validate_step(self, step: Any, step_idx: int, tc_id: str) -> list[str]:
+        errors = []
+        prefix = f"{tc_id}: шаг #{step_idx}"
+        if not isinstance(step, dict):
+            return [f"{prefix} должен быть объектом"]
+
+        step_num = step.get("step")
+        action = step.get("action")
+        expected = step.get("expected")
+
+        if not isinstance(step_num, int) or step_num <= 0:
+            errors.append(f"{prefix} содержит некорректное поле 'step' (ожидается целое число > 0)")
+        if not self._is_non_empty_string(action):
+            errors.append(f"{prefix} содержит пустое поле 'action'")
+        if not self._is_non_empty_string(expected):
+            errors.append(f"{prefix} содержит пустое поле 'expected'")
+
+        return errors
+
+    def _validate_testcase(self, testcase: Any, index: int) -> list[str]:
+        if not isinstance(testcase, dict):
+            return [f"Элемент testcases[{index}] должен быть объектом"]
+
+        errors = []
+        tc_id = testcase.get("id", f"testcases[{index}]")
+
+        for field in self.REQUIRED_FIELDS:
+            if field not in testcase:
+                errors.append(f"{tc_id}: отсутствует обязательное поле '{field}'")
+
+        if not self._is_non_empty_string(testcase.get("id")):
+            errors.append(f"testcases[{index}]: поле 'id' должно быть непустой строкой")
+
+        if not self._is_non_empty_string(testcase.get("title")):
+            errors.append(f"{tc_id}: поле 'title' должно быть непустой строкой")
+
+        req_ids = testcase.get("requirement_ids")
+        if not isinstance(req_ids, list) or not req_ids:
+            errors.append(f"{tc_id}: поле 'requirement_ids' должно быть непустым списком")
+        else:
+            for i, req_id in enumerate(req_ids):
+                if not self._is_non_empty_string(req_id):
+                    errors.append(f"{tc_id}: requirement_ids[{i}] должен быть непустой строкой")
+
+        steps = testcase.get("steps")
+        if not isinstance(steps, list) or not steps:
+            errors.append(f"{tc_id}: поле 'steps' должно быть непустым списком")
+        else:
+            for i, step in enumerate(steps, start=1):
+                errors.extend(self._validate_step(step, i, str(tc_id)))
+
+        tc_type = testcase.get("type")
+        if not self._is_non_empty_string(tc_type):
+            errors.append(f"{tc_id}: поле 'type' должно быть непустой строкой")
+
+        return errors
+
+    @staticmethod
+    def _extract_testcases(new_data: Any, tc_file: str):
+        if isinstance(new_data, list):
+            return new_data
+        if isinstance(new_data, dict) and "testcases" in new_data:
+            return new_data["testcases"]
+        logger.error(
+            f"Некорректная структура файла: {tc_file}. "
+            "Ожидается список или dict с ключом 'testcases'."
+        )
+        return None
+
     def append_from_file(self, tc_file):
         """Добавление тест-кейсов из YAML файла в буфер"""
         tc_path = Path(tc_file)
@@ -55,15 +124,15 @@ class TestcaseWriter:
             logger.error(f"Файл не найден: {tc_file}")
             return False
 
-        with open(tc_path, 'r', encoding='utf-8') as f:
-            new_data = yaml.safe_load(f)
+        try:
+            with open(tc_path, 'r', encoding='utf-8') as f:
+                new_data = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            logger.error(f"Некорректный YAML в {tc_file}: {e}")
+            return False
 
-        if isinstance(new_data, list):
-            new_testcases = new_data
-        elif isinstance(new_data, dict) and 'testcases' in new_data:
-            new_testcases = new_data['testcases']
-        else:
-            logger.error(f"Некорректная структура файла: {tc_file}. Ожидается список или dict с ключом 'testcases'.")
+        new_testcases = self._extract_testcases(new_data, tc_file)
+        if new_testcases is None:
             return False
 
         if not isinstance(new_testcases, list):
@@ -74,6 +143,16 @@ class TestcaseWriter:
             logger.warning(f"Файл не содержит тест-кейсов: {tc_file}")
             return True
 
+        validation_errors = []
+        for i, testcase in enumerate(new_testcases):
+            validation_errors.extend(self._validate_testcase(testcase, i))
+
+        if validation_errors:
+            logger.error(f"Валидация testcases из {tc_file} завершилась ошибками:")
+            for error in validation_errors:
+                logger.error(f"  - {error}")
+            return False
+
         if self.buffer_path.exists():
             with open(self.buffer_path, 'r', encoding='utf-8') as f:
                 buffer_data = yaml.safe_load(f)
@@ -81,13 +160,44 @@ class TestcaseWriter:
             logger.error("Буферный файл не найден. Запустите с --init")
             return False
 
-        buffer_data['testcases'].extend(new_testcases)
+        if not isinstance(buffer_data, dict):
+            logger.error(f"Буферный файл {self.BUFFER_FILE} повреждён: ожидался объект YAML")
+            return False
+        if not isinstance(buffer_data.get("testcases"), list):
+            logger.error(f"Буферный файл {self.BUFFER_FILE} повреждён: поле 'testcases' должно быть списком")
+            return False
+
+        existing_ids = {
+            tc.get("id").strip()
+            for tc in buffer_data["testcases"]
+            if isinstance(tc, dict) and self._is_non_empty_string(tc.get("id"))
+        }
+        seen_new = set()
+        unique_new = []
+        skipped_duplicates = []
+        for tc in new_testcases:
+            tc_id = tc["id"].strip()
+            if tc_id in existing_ids or tc_id in seen_new:
+                skipped_duplicates.append(tc_id)
+                continue
+            seen_new.add(tc_id)
+            unique_new.append(tc)
+
+        if skipped_duplicates:
+            dup_list = ", ".join(sorted(set(skipped_duplicates)))
+            logger.warning(f"Пропущены дублирующиеся id: {dup_list}")
+
+        if not unique_new:
+            logger.warning("Новые тест-кейсы не добавлены: все записи оказались дубликатами")
+            return True
+
+        buffer_data['testcases'].extend(unique_new)
 
         with open(self.buffer_path, 'w', encoding='utf-8') as f:
             yaml.dump(buffer_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
         total = len(buffer_data['testcases'])
-        added = len(new_testcases)
+        added = len(unique_new)
         logger.info(f"Буфер обновлён: добавлено {added} (всего: {total})")
 
         if self.sync_checkpoint:
@@ -97,7 +207,6 @@ class TestcaseWriter:
 
     def _sync_with_checkpoint(self, count):
         """Синхронизация с checkpoint_manager"""
-        import subprocess
         try:
             cmd = [sys.executable, str(self.workspace / "utils" / "checkpoint_manager.py"), "--set-count", str(count)]
             subprocess.run(cmd, check=True, capture_output=True)
