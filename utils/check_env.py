@@ -14,6 +14,7 @@ def check_env():
     required_files = [
         "requirements_input/requirements.yaml",
         "prompts/generate_testcases.jinja2",
+        "templates/coverage_report.html.tpl",
         "utils/render_prompt.py",
         "utils/checkpoint_manager.py",
         "utils/validate_coverage.py",
