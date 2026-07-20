@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
-"""Генератор HTML-отчёта покрытия требований тест-кейсами."""
+"""Builds the HTML report showing how test cases cover the requirements."""
 
+import html
 from datetime import datetime
 from pathlib import Path
 
 
+def esc(value) -> str:
+    """Escape a value for insertion into the HTML report.
+
+    Requirement titles, test case IDs, and recommendation strings all originate
+    from requirements text and from model output, so none of them can be trusted
+    to be markup free.
+    """
+    return html.escape(str(value), quote=True)
+
+
 class CoverageReportGenerator:
-    """Генерирует HTML-отчёт с матрицей трассировки requirement -> testcases."""
+    """Renders an HTML report with a requirement to test case traceability matrix."""
 
     TEMPLATE_FILE = Path(__file__).resolve().parent.parent / "templates" / "coverage_report.html.tpl"
 
@@ -35,7 +46,7 @@ class CoverageReportGenerator:
 
             testcases = info.get("testcases", [])
             if testcases:
-                tc_chips = "".join(f'<span class="tc-chip">{tc}</span>' for tc in testcases)
+                tc_chips = "".join(f'<span class="tc-chip">{esc(tc)}</span>' for tc in testcases)
                 tc_list = f'<div class="tc-list">{tc_chips}</div>'
             else:
                 tc_list = (
@@ -51,8 +62,8 @@ class CoverageReportGenerator:
 
             rows += f"""
                 <tr {row_class} style="animation-delay:{0.05 * (i + 1):.2f}s">
-                    <td><span class="req-id">{req_id}</span></td>
-                    <td>{info.get('title', '')}</td>
+                    <td><span class="req-id">{esc(req_id)}</span></td>
+                    <td>{esc(info.get('title', ''))}</td>
                     <td>{tc_list}</td>
                     <td style="text-align:center">{chk(info.get('has_positive', False))}</td>
                     <td style="text-align:center">{chk(info.get('has_negative', False))}</td>
@@ -69,7 +80,7 @@ class CoverageReportGenerator:
         bar_items = ""
         for i, (tech, count) in enumerate(sorted(tech_dist.items())):
             pct = int((count / max_count) * 100)
-            name = self.TECHNIQUE_NAMES.get(tech, tech)
+            name = esc(self.TECHNIQUE_NAMES.get(tech, tech))
             bar_items += f"""
                 <div class="tech-bar-row">
                     <div class="tech-bar-label">{name}</div>
@@ -90,7 +101,7 @@ class CoverageReportGenerator:
         if not recs:
             return ""
 
-        rec_items = "".join(f"<li>{r}</li>" for r in recs)
+        rec_items = "".join(f"<li>{esc(r)}</li>" for r in recs)
         return f"""
     <div class="card rec-card" style="animation-delay:0.45s">
         <h2><span class="icon">&#9888;</span> Recommendations</h2>

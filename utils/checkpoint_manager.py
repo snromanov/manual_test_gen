@@ -45,39 +45,39 @@ def update_step(step_name, status="completed"):
         state["history"].append(entry)
 
     save_state(state)
-    print(f"Состояние обновлено: {step_name} ({status})")
+    print(f"State updated: {step_name} ({status})")
 
 def set_requirement(total, project_name):
     state = get_state()
     state["total_requirements"] = total
     state["project_name"] = project_name
     save_state(state)
-    print(f"Установлено: {total} требований для проекта {project_name}")
+    print(f"Set: {total} requirement(s) for project {project_name}")
 
 def increment_testcases(count):
     state = get_state()
     state["testcases_generated"] += count
     save_state(state)
-    print(f"Прогресс: {state['testcases_generated']} тест-кейсов сгенерировано")
+    print(f"Progress: {state['testcases_generated']} test case(s) generated")
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Управление чекпоинтами агента")
-    parser.add_argument("--get", action="store_true", help="Показать текущее состояние")
-    parser.add_argument("--can-cleanup", action="store_true", help="Можно ли безопасно очистить проект")
-    parser.add_argument("--update", type=str, help="Обновить текущий шаг")
-    parser.add_argument("--status", type=str, default="completed", help="Статус шага")
-    parser.add_argument("--set-req", nargs=2, metavar=("TOTAL", "PROJECT"), help="Установить требования")
-    parser.add_argument("--inc", type=int, help="Увеличить счетчик тест-кейсов")
-    parser.add_argument("--set-count", type=int, help="Установить точное количество тест-кейсов")
-    parser.add_argument("--reset", action="store_true", help="Сбросить состояние")
+    parser = argparse.ArgumentParser(description="Manage the agent checkpoint state")
+    parser.add_argument("--get", action="store_true", help="Print the current state")
+    parser.add_argument("--can-cleanup", action="store_true", help="Whether the project can be safely cleaned up")
+    parser.add_argument("--update", type=str, help="Update the current step")
+    parser.add_argument("--status", type=str, default="completed", help="Step status")
+    parser.add_argument("--set-req", nargs=2, metavar=("TOTAL", "PROJECT"), help="Set the requirement count and project name")
+    parser.add_argument("--inc", type=int, help="Increment the test case counter")
+    parser.add_argument("--set-count", type=int, help="Set the exact test case count")
+    parser.add_argument("--reset", action="store_true", help="Reset the state")
 
     args = parser.parse_args()
 
     if args.reset:
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
-        print("Состояние сброшено")
+        print("State reset")
         sys.exit(0)
 
     if args.get:
@@ -107,4 +107,4 @@ if __name__ == "__main__":
         state = get_state()
         state["testcases_generated"] = args.set_count
         save_state(state)
-        print(f"Прогресс установлен: {args.set_count}")
+        print(f"Progress set to: {args.set_count}")

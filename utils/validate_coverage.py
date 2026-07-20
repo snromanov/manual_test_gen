@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Валидация покрытия требований тест-кейсами.
-Проверяет что >= 95% требований покрыты минимум одним тест-кейсом.
-Генерирует матрицу трассировки и HTML-отчёт.
+Validates that test cases cover the requirements.
+Checks that >= 95% of requirements carry at least one test case.
+Builds a traceability matrix and an HTML report.
 """
 import json
 import sys
@@ -28,7 +28,7 @@ def load_testcases(path: str) -> dict:
 
 
 def load_requirements_from_config(config_path: str) -> dict:
-    """Загружает требования: из markdown-файла (если указан) или из YAML напрямую."""
+    """Load requirements through the config, which points at the Markdown file."""
     ctx = load_config_and_requirements(config_path)
     return {r['id']: r for r in ctx['requirements']}
 
@@ -38,7 +38,7 @@ def validate_coverage(req_path: str = REQUIREMENTS_FILE, tc_path: str = TESTCASE
     tc_data = load_testcases(tc_path)
     testcases = tc_data.get('testcases', [])
 
-    # Матрица трассировки: requirement_id -> list of TC info
+    # Traceability matrix: requirement_id -> list of TC info
     coverage_matrix = defaultdict(list)
     orphan_testcases = []
     all_req_ids = set(requirements.keys())
@@ -55,7 +55,7 @@ def validate_coverage(req_path: str = REQUIREMENTS_FILE, tc_path: str = TESTCASE
 
         for req_id in req_ids:
             if req_id not in all_req_ids:
-                orphan_testcases.append(f"{tc_id} -> {req_id} (не существует)")
+                orphan_testcases.append(f"{tc_id} -> {req_id} (does not exist)")
             else:
                 coverage_matrix[req_id].append({
                     'tc_id': tc_id,
@@ -63,14 +63,14 @@ def validate_coverage(req_path: str = REQUIREMENTS_FILE, tc_path: str = TESTCASE
                     'tags': tc_tags
                 })
 
-    # Покрытие
+    # Coverage
     covered = set(coverage_matrix.keys())
     uncovered = all_req_ids - covered
     total = len(all_req_ids)
     covered_count = len(covered)
     coverage_pct = (covered_count / total * 100) if total > 0 else 0.0
 
-    # Детальная матрица
+    # Detailed matrix
     matrix = {}
     for req_id, req in requirements.items():
         tcs = coverage_matrix.get(req_id, [])
@@ -87,7 +87,7 @@ def validate_coverage(req_path: str = REQUIREMENTS_FILE, tc_path: str = TESTCASE
             'has_boundary': any(t == 'boundary' for t in tc_types),
         }
 
-    # Распределение ISTQB-техник по тегам
+    # ISTQB technique distribution, read off the tags
     technique_dist = defaultdict(int)
     for tc in testcases:
         tags = tc.get('tags', '')
@@ -95,12 +95,12 @@ def validate_coverage(req_path: str = REQUIREMENTS_FILE, tc_path: str = TESTCASE
             if tech in tags:
                 technique_dist[tech] += 1
 
-    # Рекомендации
+    # Recommendations
     recommendations = []
     if coverage_pct < COVERAGE_THRESHOLD:
         recommendations.append(
-            f"КРИТИЧНО: Покрытие {coverage_pct:.1f}% ниже порога {COVERAGE_THRESHOLD}%. "
-            f"Непокрытые требования: {', '.join(sorted(uncovered))}"
+            f"CRITICAL: coverage {coverage_pct:.1f}% is below the {COVERAGE_THRESHOLD}% threshold. "
+            f"Uncovered requirements: {', '.join(sorted(uncovered))}"
         )
 
     reqs_without_negative = [
@@ -109,18 +109,18 @@ def validate_coverage(req_path: str = REQUIREMENTS_FILE, tc_path: str = TESTCASE
     ]
     if reqs_without_negative:
         recommendations.append(
-            f"Нет негативных тест-кейсов для: {', '.join(reqs_without_negative)}"
+            f"No negative test cases for: {', '.join(reqs_without_negative)}"
         )
 
     missing_techniques = [t for t in ISTQB_TECHNIQUES if technique_dist.get(t, 0) == 0]
     if missing_techniques:
         recommendations.append(
-            f"Не применены ISTQB-техники: {', '.join(missing_techniques)}"
+            f"ISTQB techniques never applied: {', '.join(missing_techniques)}"
         )
 
     if orphan_testcases:
         recommendations.append(
-            f"Тест-кейсы без валидных ссылок на требования: {', '.join(orphan_testcases)}"
+            f"Test cases with no valid requirement reference: {', '.join(orphan_testcases)}"
         )
 
     result = {
@@ -140,18 +140,18 @@ def validate_coverage(req_path: str = REQUIREMENTS_FILE, tc_path: str = TESTCASE
 
 
 def print_report(result: dict):
-    """Вывод отчёта в консоль"""
+    """Print the coverage report to the console."""
     status = "PASS" if result['pass'] else "FAIL"
     print(f"\n{'='*60}")
-    print(f"  ОТЧЁТ О ПОКРЫТИИ ТРЕБОВАНИЙ — {status}")
+    print(f"  REQUIREMENTS COVERAGE REPORT: {status}")
     print(f"{'='*60}")
-    print(f"  Покрытие: {result['coverage_percent']}% (порог: {COVERAGE_THRESHOLD}%)")
-    print(f"  Требований: {result['covered_requirements']}/{result['total_requirements']}")
-    print(f"  Тест-кейсов: {result['total_testcases']}")
+    print(f"  Coverage: {result['coverage_percent']}% (threshold: {COVERAGE_THRESHOLD}%)")
+    print(f"  Requirements: {result['covered_requirements']}/{result['total_requirements']}")
+    print(f"  Test cases: {result['total_testcases']}")
     print(f"{'='*60}")
 
-    print("\n  МАТРИЦА ТРАССИРОВКИ:")
-    print(f"  {'REQ ID':<12} {'Название':<40} {'TC':<5} {'+':<3} {'-':<3} {'BVA':<3}")
+    print("\n  TRACEABILITY MATRIX:")
+    print(f"  {'REQ ID':<12} {'Title':<40} {'TC':<5} {'+':<3} {'-':<3} {'BVA':<3}")
     print(f"  {'-'*12} {'-'*40} {'-'*5} {'-'*3} {'-'*3} {'-'*3}")
 
     for req_id in sorted(result['matrix'].keys()):
@@ -163,15 +163,15 @@ def print_report(result: dict):
         print(f"  {req_id:<12} {title:<40} {info['testcase_count']:<5} {pos:<3} {neg:<3} {bva:<3}")
 
     if result['uncovered_requirements']:
-        print(f"\n  НЕПОКРЫТЫЕ ТРЕБОВАНИЯ: {', '.join(result['uncovered_requirements'])}")
+        print(f"\n  UNCOVERED REQUIREMENTS: {', '.join(result['uncovered_requirements'])}")
 
     if result['technique_distribution']:
-        print(f"\n  ISTQB-ТЕХНИКИ:")
+        print(f"\n  ISTQB TECHNIQUES:")
         for tech, count in sorted(result['technique_distribution'].items()):
-            print(f"    {tech}: {count} тест-кейсов")
+            print(f"    {tech}: {count} test case(s)")
 
     if result['recommendations']:
-        print(f"\n  РЕКОМЕНДАЦИИ:")
+        print(f"\n  RECOMMENDATIONS:")
         for rec in result['recommendations']:
             print(f"    - {rec}")
 
@@ -179,23 +179,23 @@ def print_report(result: dict):
 
 
 def generate_html_report(result: dict):
-    """Генерация HTML-отчёта и вызов report_generator"""
+    """Render the HTML coverage report through report_generator."""
     from utils.report_generator import CoverageReportGenerator
 
     generator = CoverageReportGenerator()
     output_path = Path("reports/coverage_report.html")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     generator.generate(result, output_path)
-    logger.info(f"HTML-отчёт: {output_path}")
+    logger.info(f"HTML report: {output_path}")
 
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Валидация покрытия требований")
+    parser = argparse.ArgumentParser(description="Validate requirements coverage")
     parser.add_argument("--requirements", type=str, default=REQUIREMENTS_FILE)
     parser.add_argument("--testcases", type=str, default=TESTCASES_FILE)
-    parser.add_argument("--json", action="store_true", help="Вывести результат в JSON")
-    parser.add_argument("--html", action="store_true", help="Сгенерировать HTML-отчёт")
+    parser.add_argument("--json", action="store_true", help="Print the result as JSON")
+    parser.add_argument("--html", action="store_true", help="Generate the HTML report")
 
     args = parser.parse_args()
 

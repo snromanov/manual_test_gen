@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Парсер требований из Markdown-файла.
+Parser for requirements written in Markdown.
 
-Формат:
-  ## REQ_001 [Front] Заголовок требования
-  - пункт требования 1
-  - пункт требования 2
+Format:
+  ## REQ_001 [Front] Requirement title
+  - criterion 1
+  - criterion 2
 
-  ## REQ_002 [Back] Другое требование
-  - пункт 1
+  ## REQ_002 [Back] Another requirement
+  - criterion 1
 
-ID определяется по паттерну REQ_NNN в начале заголовка ## уровня.
-Тег в квадратных скобках [Front], [Back] и т.д. — опционален, парсится как `tag`.
-Всё остальное в заголовке — title.
-Буллет-пойнты (- ...) под заголовком — acceptance_criteria.
+The ID is matched by the REQ_NNN pattern at the start of a level 2 heading.
+A bracketed tag such as [Front] or [Back] is optional and is parsed as `tag`.
+The rest of the heading is the title.
+Bullet points (- ...) under the heading become acceptance_criteria.
 """
 import re
 import sys
@@ -24,21 +24,21 @@ from utils.logger_config import get_logger
 
 logger = get_logger(__name__)
 
-# Паттерн заголовка: ## REQ_001 [Front] Заголовок
+# Heading pattern: ## REQ_001 [Front] Title
 HEADER_PATTERN = re.compile(
     r'^##\s+'
-    r'(REQ_\d+)'              # ID (обязательный)
-    r'(?:\s+\[([^\]]+)\])?'   # [Tag] (опциональный)
-    r'\s+(.*)',                # Title (остаток строки)
+    r'(REQ_\d+)'              # ID (required)
+    r'(?:\s+\[([^\]]+)\])?'   # [Tag] (optional)
+    r'\s+(.*)',                # Title (rest of the line)
     re.IGNORECASE
 )
 
 
 def parse_requirements_md(md_path: str) -> list:
-    """Парсит markdown-файл с требованиями и возвращает список dict."""
+    """Parse a Markdown requirements file and return a list of dicts."""
     path = Path(md_path)
     if not path.exists():
-        logger.error(f"Файл не найден: {md_path}")
+        logger.error(f"File not found: {md_path}")
         return []
 
     text = path.read_text(encoding='utf-8')
@@ -50,10 +50,10 @@ def parse_requirements_md(md_path: str) -> list:
     for line in lines:
         stripped = line.strip()
 
-        # Проверяем заголовок ##
+        # Check for a ## heading
         match = HEADER_PATTERN.match(stripped)
         if match:
-            # Сохраняем предыдущее требование
+            # Store the previous requirement
             if current_req:
                 requirements.append(current_req)
 
@@ -70,28 +70,28 @@ def parse_requirements_md(md_path: str) -> list:
             }
             continue
 
-        # Буллет-пойнт
+        # Bullet point
         if current_req is not None:
             if stripped.startswith('- '):
                 criterion = stripped[2:].strip()
                 current_req['criteria'].append(criterion)
                 current_req['raw_text'] += stripped + '\n'
             elif stripped and not stripped.startswith('#'):
-                # Продолжение предыдущего буллета (многострочный)
+                # Continuation of the previous bullet across lines
                 if current_req['criteria']:
                     current_req['criteria'][-1] += ' ' + stripped
                 current_req['raw_text'] += stripped + '\n'
 
-    # Последнее требование
+    # The last requirement
     if current_req:
         requirements.append(current_req)
 
-    logger.info(f"Распарсено {len(requirements)} требований из {md_path}")
+    logger.info(f"Parsed {len(requirements)} requirement(s) from {md_path}")
     return requirements
 
 
 def load_config_and_requirements(config_path: str = "requirements_input/requirements.yaml") -> dict:
-    """Загружает конфиг YAML + парсит markdown-требования. Возвращает полный контекст."""
+    """Load the YAML config and parse the Markdown requirements into one context dict."""
     with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
@@ -103,7 +103,7 @@ def load_config_and_requirements(config_path: str = "requirements_input/requirem
         'version': config.get('version', '1.0'),
         'module_name': config.get('module', 'Unknown'),
         'test_level': config.get('test_level', 'system'),
-        'language': config.get('language', 'ru'),
+        'language': config.get('language', 'en'),
         'tags_prefix': config.get('tags_prefix', ''),
         'global_preconditions': config.get('global_preconditions', []),
         'requirements': requirements,
@@ -112,10 +112,10 @@ def load_config_and_requirements(config_path: str = "requirements_input/requirem
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Парсер markdown-требований")
+    parser = argparse.ArgumentParser(description="Markdown requirements parser")
     parser.add_argument("--config", type=str, default="requirements_input/requirements.yaml")
-    parser.add_argument("--md", type=str, help="Напрямую парсить MD файл (без конфига)")
-    parser.add_argument("--json", action="store_true", help="Вывод в JSON")
+    parser.add_argument("--md", type=str, help="Parse an MD file directly, without the config")
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     args = parser.parse_args()
 
@@ -135,8 +135,8 @@ if __name__ == "__main__":
             import json
             print(json.dumps(ctx, indent=2, ensure_ascii=False))
         else:
-            print(f"Проект: {ctx['project_name']}")
-            print(f"Модуль: {ctx['module_name']}")
-            print(f"Требований: {len(ctx['requirements'])}")
+            print(f"Project: {ctx['project_name']}")
+            print(f"Module: {ctx['module_name']}")
+            print(f"Requirements: {len(ctx['requirements'])}")
             for r in ctx['requirements']:
-                print(f"  {r['id']} [{r['tag']}] {r['title']} ({len(r['criteria'])} критериев)")
+                print(f"  {r['id']} [{r['tag']}] {r['title']} ({len(r['criteria'])} criteria)")

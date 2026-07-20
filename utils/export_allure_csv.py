@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Экспорт тест-кейсов из YAML в CSV формат Allure TestOps.
+Exports test cases from YAML into the Allure TestOps CSV format.
 
-Формат Scenario-ячейки в Allure TestOps:
-  [step N] Действие
-  [expected N] Ожидаемый результат
-  Строки разделяются символом \n.
-  Вложенные шаги начинаются с \t.
+Shape of the Scenario cell in Allure TestOps:
+  [step N] Action
+  [expected N] Expected result
+  Lines are separated by \n.
+  Nested steps start with \t.
 """
 import csv
 import sys
@@ -32,13 +32,13 @@ CSV_COLUMNS = [
 
 
 def format_scenario(steps: list) -> str:
-    """Конвертация списка шагов в формат Allure TestOps Scenario.
+    """Convert a list of steps into the Allure TestOps Scenario format.
 
-    Формат:
-        [step 1] Действие 1
-        [expected 1] Ожидаемый результат 1
-        [step 2] Действие 2
-        [expected 2] Ожидаемый результат 2
+    Shape:
+        [step 1] Action 1
+        [expected 1] Expected result 1
+        [step 2] Action 2
+        [expected 2] Expected result 2
     """
     lines = []
     for s in steps:
@@ -52,7 +52,7 @@ def format_scenario(steps: list) -> str:
 
 
 def get_final_expected(steps: list) -> str:
-    """Получить ожидаемый результат последнего шага (для поля Expected result)."""
+    """Return the expected result of the last step, used for the Expected result column."""
     if not steps:
         return ""
     last_step = steps[-1]
@@ -60,10 +60,10 @@ def get_final_expected(steps: list) -> str:
 
 
 def export_to_csv(input_path: str = TESTCASES_FILE, output_path: str = CSV_OUTPUT_FILE):
-    """Экспорт testcases_output.yaml в CSV для Allure TestOps."""
+    """Export testcases_output.yaml to a CSV for Allure TestOps."""
     input_file = Path(input_path)
     if not input_file.exists():
-        logger.error(f"Файл не найден: {input_path}")
+        logger.error(f"File not found: {input_path}")
         return False
 
     with open(input_file, 'r', encoding='utf-8') as f:
@@ -71,7 +71,7 @@ def export_to_csv(input_path: str = TESTCASES_FILE, output_path: str = CSV_OUTPU
 
     testcases = data.get('testcases', [])
     if not testcases:
-        logger.error("Нет тест-кейсов для экспорта")
+        logger.error("No test cases to export")
         return False
 
     output_file = Path(output_path)
@@ -94,15 +94,15 @@ def export_to_csv(input_path: str = TESTCASES_FILE, output_path: str = CSV_OUTPU
             }
             writer.writerow(row)
 
-    logger.info(f"Экспортировано {len(testcases)} тест-кейсов в {output_path}")
+    logger.info(f"Exported {len(testcases)} test case(s) to {output_path}")
     return True
 
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Экспорт тест-кейсов в Allure TestOps CSV")
-    parser.add_argument("--input", type=str, default=TESTCASES_FILE, help="Входной YAML")
-    parser.add_argument("--output", type=str, default=CSV_OUTPUT_FILE, help="Выходной CSV")
+    parser = argparse.ArgumentParser(description="Export test cases to an Allure TestOps CSV")
+    parser.add_argument("--input", type=str, default=TESTCASES_FILE, help="Input YAML file")
+    parser.add_argument("--output", type=str, default=CSV_OUTPUT_FILE, help="Output CSV file")
 
     args = parser.parse_args()
 

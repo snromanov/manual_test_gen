@@ -26,16 +26,16 @@ def check_env():
 
     for d in required_dirs:
         if not os.path.isdir(d):
-            missing.append(f"Директория {d}/ не найдена")
+            missing.append(f"Directory {d}/ not found")
 
     for d in runtime_dirs:
         Path(d).mkdir(parents=True, exist_ok=True)
 
     for f in required_files:
         if not os.path.isfile(f):
-            missing.append(f"Файл {f} не найден")
+            missing.append(f"File {f} not found")
 
-    # Проверка markdown-файла требований из конфига
+    # Check the Markdown requirements file referenced by the config
     config_path = Path("requirements_input/requirements.yaml")
     if config_path.exists():
         try:
@@ -44,17 +44,17 @@ def check_env():
                 config = yaml.safe_load(f)
             md_file = config.get('requirements_file')
             if md_file and not os.path.isfile(md_file):
-                missing.append(f"Файл требований {md_file} не найден (указан в requirements.yaml)")
+                missing.append(f"Requirements file {md_file} not found (referenced from requirements.yaml)")
         except Exception:
             pass
 
     if missing:
-        logger.error("ОШИБКА: Окружение не готово к работе:")
+        logger.error("The environment is not ready:")
         for m in missing:
             logger.info(f"  - {m}")
         return False
 
-    logger.info("Окружение проверено, все необходимые компоненты на месте.")
+    logger.info("Environment checked, every required component is in place.")
     return True
 
 
