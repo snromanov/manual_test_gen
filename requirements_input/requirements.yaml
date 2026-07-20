@@ -1,14 +1,14 @@
 project: "Demo Project"
 version: "1.0"
-module: "Календарь событий"
+module: "Event calendar"
 test_level: "system"
-language: "ru"
+language: "en"
 tags_prefix: "module:calendar"
 
-# Путь к файлу с требованиями в формате Markdown
+# Path to the Markdown file holding the requirements
 requirements_file: "requirements_input/requirements.md"
 
 global_preconditions:
-  - "Приложение развёрнуто и доступно"
-  - "Пользователь авторизован с ролью администратора"
-  - "В мастер-админке настроены сообщества с цветовой индикацией"
+  - "The application is deployed and reachable"
+  - "The user is signed in with the administrator role"
+  - "Communities with colour coding are configured in the admin panel"

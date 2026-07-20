@@ -34,18 +34,18 @@ def select_requirements(requirements: list[dict], req_ids: list[str], offset: in
         by_id = {r.get("id", "").upper(): r for r in requirements}
         missing = [req_id for req_id in req_ids if req_id not in by_id]
         if missing:
-            raise ValueError(f"Требования не найдены: {', '.join(missing)}")
+            raise ValueError(f"Requirements not found: {', '.join(missing)}")
         selected = [by_id[req_id] for req_id in req_ids]
     else:
         selected = list(requirements)
 
     if offset < 0:
-        raise ValueError("--offset должен быть >= 0")
+        raise ValueError("--offset must be >= 0")
 
     selected = selected[offset:]
     if limit is not None:
         if limit <= 0:
-            raise ValueError("--limit должен быть > 0")
+            raise ValueError("--limit must be > 0")
         selected = selected[:limit]
 
     return selected
@@ -56,15 +56,15 @@ def render_prompt(config_path: str, template_path: str, req_ids: list[str], offs
     requirements = context.get("requirements", [])
 
     if not requirements:
-        raise ValueError("Требования не найдены. Проверьте requirements_input/requirements.md")
+        raise ValueError("No requirements found. Check requirements_input/requirements.md")
 
     selected = select_requirements(requirements, req_ids, offset, limit)
     if not selected:
-        raise ValueError("После фильтрации не осталось требований для рендера.")
+        raise ValueError("Filtering left no requirements to render.")
 
     template_file = Path(template_path)
     if not template_file.exists():
-        raise ValueError(f"Шаблон не найден: {template_path}")
+        raise ValueError(f"Template not found: {template_path}")
 
     env = Environment(
         loader=FileSystemLoader(str(template_file.parent)),
@@ -84,17 +84,17 @@ def render_prompt(config_path: str, template_path: str, req_ids: list[str], offs
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Рендер промпта генерации тест-кейсов из Jinja2")
-    parser.add_argument("--config", default="requirements_input/requirements.yaml", help="Путь к YAML-конфигу")
-    parser.add_argument("--template", default="prompts/generate_testcases.jinja2", help="Путь к Jinja2-шаблону")
+    parser = argparse.ArgumentParser(description="Render the test case generation prompt from the Jinja2 template")
+    parser.add_argument("--config", default="requirements_input/requirements.yaml", help="Path to the YAML config")
+    parser.add_argument("--template", default="prompts/generate_testcases.jinja2", help="Path to the Jinja2 template")
     parser.add_argument(
         "--req-ids",
         nargs="+",
-        help="Список requirement ID (через пробел или запятую), например: REQ_001 REQ_002",
+        help="Requirement IDs, space or comma separated, for example: REQ_001 REQ_002",
     )
-    parser.add_argument("--offset", type=int, default=0, help="Сдвиг по отфильтрованному списку требований")
-    parser.add_argument("--limit", type=int, help="Максимум требований для рендера")
-    parser.add_argument("--output", help="Файл для сохранения промпта; по умолчанию stdout")
+    parser.add_argument("--offset", type=int, default=0, help="Offset into the filtered requirement list")
+    parser.add_argument("--limit", type=int, help="Maximum number of requirements to render")
+    parser.add_argument("--output", help="File to write the prompt to, defaults to stdout")
 
     args = parser.parse_args()
 
@@ -105,14 +105,14 @@ def main() -> int:
         logger.error(str(e))
         return 1
     except Exception as e:
-        logger.exception(f"Не удалось отрендерить промпт: {e}")
+        logger.exception(f"Could not render the prompt: {e}")
         return 1
 
     if args.output:
         out_path = Path(args.output)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(rendered, encoding="utf-8")
-        logger.info(f"Промпт сохранён: {out_path}")
+        logger.info(f"Prompt written to: {out_path}")
     else:
         print(rendered)
 
